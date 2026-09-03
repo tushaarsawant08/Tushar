@@ -12,23 +12,36 @@ def get_file_hash(file_path):
     except Exception as e:
         return None
 
-def get_all_files(folder):
-    """Get all files in a folder with relative paths"""
+def get_all_files(folder, extension=None):
+    """
+    Get all files in a folder with relative paths.
+    
+    Args:
+        folder: Path to folder
+        extension: Optional file extension to filter (e.g., '.txt', '.py', '.json')
+                  If None, gets all files
+    """
     files = {}
     for root, dirs, filenames in os.walk(folder):
         for filename in filenames:
+            # Filter by extension if specified
+            if extension:
+                if not filename.lower().endswith(extension.lower()):
+                    continue
+            
             full_path = os.path.join(root, filename)
             rel_path = os.path.relpath(full_path, folder)
             files[rel_path] = full_path
     return files
 
-def compare_folders(folder1, folder2, output_format="text"):
+def compare_folders(folder1, folder2, extension=None, output_format="text"):
     """
     Compare two folders and show differences.
     
     Args:
         folder1: Path to first folder
         folder2: Path to second folder
+        extension: Optional file extension to filter (e.g., '.txt', '.py')
         output_format: "text" or "json"
     
     Returns:
@@ -43,9 +56,9 @@ def compare_folders(folder1, folder2, output_format="text"):
         print(f"Error: {folder2} does not exist")
         return None
     
-    # Get all files
-    files1 = get_all_files(folder1)
-    files2 = get_all_files(folder2)
+    # Get all files (optionally filtered by extension)
+    files1 = get_all_files(folder1, extension)
+    files2 = get_all_files(folder2, extension)
     
     files1_set = set(files1.keys())
     files2_set = set(files2.keys())
@@ -73,9 +86,12 @@ def compare_folders(folder1, folder2, output_format="text"):
             })
     
     # Prepare results
+    filter_text = f" (*.{extension.lstrip('.')})" if extension else ""
+    
     results = {
         "folder1": os.path.abspath(folder1),
         "folder2": os.path.abspath(folder2),
+        "extension_filter": extension if extension else "all files",
         "only_in_folder1": sorted(list(only_in_folder1)),
         "only_in_folder2": sorted(list(only_in_folder2)),
         "identical_files": identical_files,
@@ -98,8 +114,10 @@ def compare_folders(folder1, folder2, output_format="text"):
 
 def print_text_report(results):
     """Print comparison results in text format"""
+    filter_text = f" ({results.get('extension_filter', 'all files')})"
+    
     print("\n" + "="*70)
-    print("FOLDER COMPARISON REPORT")
+    print(f"FOLDER COMPARISON REPORT{filter_text}")
     print("="*70)
     
     print(f"\nFolder 1: {results['folder1']}")
@@ -137,7 +155,7 @@ def print_text_report(results):
         print("IDENTICAL FILES:")
         print("-"*70)
         for f in results['identical_files'][:10]:  # Show first 10
-            print(f"  ✓ {f}")
+            print(f"  [=] {f}")
         if len(results['identical_files']) > 10:
             print(f"  ... and {len(results['identical_files']) - 10} more")
     
@@ -147,7 +165,7 @@ def print_text_report(results):
         print("DIFFERENT FILES:")
         print("-"*70)
         for item in results['different_files']:
-            print(f"  ✗ {item['file']}")
+            print(f"  [!] {item['file']}")
             print(f"    Folder 1 hash: {item['hash_in_folder1']}")
             print(f"    Folder 2 hash: {item['hash_in_folder2']}")
     
@@ -161,6 +179,8 @@ def save_report_to_json(results, filename="comparison_report.json"):
 
 def save_report_to_html(results, filename="comparison_report.html"):
     """Save comparison results to HTML file for better visualization"""
+    filter_text = results.get('extension_filter', 'all files')
+    
     html_content = f"""
     <!DOCTYPE html>
     <html>
@@ -172,24 +192,25 @@ def save_report_to_html(results, filename="comparison_report.html"):
             .container {{ max-width: 1000px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
             h1 {{ color: #333; border-bottom: 3px solid #007bff; padding-bottom: 10px; }}
             h2 {{ color: #555; margin-top: 30px; border-left: 4px solid #007bff; padding-left: 10px; }}
+            .filter-badge {{ display: inline-block; background-color: #007bff; color: white; padding: 5px 10px; border-radius: 15px; margin-left: 10px; font-size: 12px; }}
             .summary {{ background-color: #e7f3ff; padding: 15px; border-radius: 5px; margin: 15px 0; }}
             .summary-item {{ display: inline-block; margin-right: 20px; }}
             .summary-label {{ font-weight: bold; color: #333; }}
             .summary-value {{ font-size: 18px; color: #007bff; font-weight: bold; }}
             .folder-path {{ background-color: #f9f9f9; padding: 10px; margin: 5px 0; border-left: 3px solid #007bff; }}
             ul {{ list-style-type: none; padding: 0; }}
-            li {{ padding: 8px; margin: 5px 0; background-color: #f9f9f9; border-radius: 3px; }}
+            li {{ padding: 8px; margin: 5px 0; background-color: #f9f9f9; border-radius: 3px; font-family: monospace; font-size: 13px; }}
             .only-folder1 {{ border-left: 4px solid #ff6b6b; }}
             .only-folder2 {{ border-left: 4px solid #51cf66; }}
             .identical {{ border-left: 4px solid #4dabf7; color: #4dabf7; }}
             .different {{ border-left: 4px solid #ffd43b; background-color: #fffbea; }}
-            .hash {{ font-family: monospace; font-size: 12px; color: #666; margin-top: 5px; }}
+            .hash {{ font-family: monospace; font-size: 11px; color: #666; margin-top: 5px; margin-left: 20px; }}
             .icon {{ font-weight: bold; margin-right: 10px; }}
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>Folder Comparison Report</h1>
+            <h1>Folder Comparison Report<span class="filter-badge">{filter_text}</span></h1>
             
             <div class="folder-path"><strong>Folder 1:</strong> {results['folder1']}</div>
             <div class="folder-path"><strong>Folder 2:</strong> {results['folder2']}</div>
@@ -276,21 +297,41 @@ if __name__ == "__main__":
     import sys
     
     if len(sys.argv) < 3:
-        print("Usage: python folder_comparison.py <folder1> <folder2> [output_format]")
-        print("\nExample:")
-        print("  python folder_comparison.py /path/to/folder1 /path/to/folder2")
-        print("  python folder_comparison.py folder1 folder2 json")
-        print("\nOutput formats: text (default), json, html, all")
+        print("Usage: python folder_comparison.py <folder1> <folder2> [extension] [output_format]")
+        print("\nExamples:")
+        print("  Compare all files:")
+        print("    python folder_comparison.py folder1 folder2")
+        print("\n  Compare only .txt files (text report):")
+        print("    python folder_comparison.py folder1 folder2 .txt")
+        print("\n  Compare only .py files (JSON report):")
+        print("    python folder_comparison.py folder1 folder2 .py json")
+        print("\n  Compare only .json files (HTML report):")
+        print("    python folder_comparison.py folder1 folder2 .json html")
+        print("\nSupported extensions: .txt, .py, .json, .pdf, .csv, .xml, etc.")
+        print("Output formats: text (default), json, html, all")
         sys.exit(1)
     
     folder1 = sys.argv[1]
     folder2 = sys.argv[2]
-    output_format = sys.argv[3] if len(sys.argv) > 3 else "text"
+    extension = None
+    output_format = "text"
     
-    print(f"Comparing folders: {folder1} and {folder2}")
+    # Parse optional arguments
+    if len(sys.argv) > 3:
+        arg3 = sys.argv[3]
+        # Check if arg3 is an extension (starts with .) or output format
+        if arg3.startswith('.'):
+            extension = arg3
+            if len(sys.argv) > 4:
+                output_format = sys.argv[4]
+        else:
+            output_format = arg3
+    
+    filter_display = f" (extension: {extension})" if extension else ""
+    print(f"Comparing folders: {folder1} and {folder2}{filter_display}")
     print("Please wait...\n")
     
-    results = compare_folders(folder1, folder2, output_format="json")
+    results = compare_folders(folder1, folder2, extension=extension, output_format="json")
     
     if results:
         if output_format == "text":
