@@ -155,7 +155,7 @@ def print_text_report(results):
 
 def save_report_to_json(results, filename="comparison_report.json"):
     """Save comparison results to JSON file"""
-    with open(filename, 'w') as f:
+    with open(filename, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2)
     print(f"Report saved to {filename}")
 
@@ -165,6 +165,7 @@ def save_report_to_html(results, filename="comparison_report.html"):
     <!DOCTYPE html>
     <html>
     <head>
+        <meta charset="UTF-8">
         <title>Folder Comparison Report</title>
         <style>
             body {{ font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }}
@@ -188,7 +189,7 @@ def save_report_to_html(results, filename="comparison_report.html"):
     </head>
     <body>
         <div class="container">
-            <h1>📊 Folder Comparison Report</h1>
+            <h1>Folder Comparison Report</h1>
             
             <div class="folder-path"><strong>Folder 1:</strong> {results['folder1']}</div>
             <div class="folder-path"><strong>Folder 2:</strong> {results['folder2']}</div>
@@ -215,42 +216,42 @@ def save_report_to_html(results, filename="comparison_report.html"):
     
     if results['only_in_folder1']:
         html_content += f"""
-            <h2>📁 Files Only in Folder 1 ({len(results['only_in_folder1'])})</h2>
+            <h2>Files Only in Folder 1 ({len(results['only_in_folder1'])})</h2>
             <ul>
         """
         for f in results['only_in_folder1']:
-            html_content += f'<li class="only-folder1"><span class="icon">❌</span>{f}</li>'
+            html_content += f'<li class="only-folder1"><span class="icon">[F1]</span>{f}</li>'
         html_content += "</ul>"
     
     if results['only_in_folder2']:
         html_content += f"""
-            <h2>📁 Files Only in Folder 2 ({len(results['only_in_folder2'])})</h2>
+            <h2>Files Only in Folder 2 ({len(results['only_in_folder2'])})</h2>
             <ul>
         """
         for f in results['only_in_folder2']:
-            html_content += f'<li class="only-folder2"><span class="icon">➕</span>{f}</li>'
+            html_content += f'<li class="only-folder2"><span class="icon">[F2]</span>{f}</li>'
         html_content += "</ul>"
     
     if results['identical_files']:
         html_content += f"""
-            <h2>✅ Identical Files ({len(results['identical_files'])})</h2>
+            <h2>Identical Files ({len(results['identical_files'])})</h2>
             <ul>
         """
         for f in results['identical_files'][:20]:
-            html_content += f'<li class="identical"><span class="icon">✓</span>{f}</li>'
+            html_content += f'<li class="identical"><span class="icon">[=]</span>{f}</li>'
         if len(results['identical_files']) > 20:
             html_content += f'<li>... and {len(results["identical_files"]) - 20} more</li>'
         html_content += "</ul>"
     
     if results['different_files']:
         html_content += f"""
-            <h2>⚠️ Different Files ({len(results['different_files'])})</h2>
+            <h2>Different Files ({len(results['different_files'])})</h2>
             <ul>
         """
         for item in results['different_files']:
             html_content += f"""
             <li class="different">
-                <span class="icon">⚠️</span>{item['file']}
+                <span class="icon">[!]</span>{item['file']}
                 <div class="hash">
                     Folder 1: {item['hash_in_folder1']}<br>
                     Folder 2: {item['hash_in_folder2']}
@@ -265,7 +266,8 @@ def save_report_to_html(results, filename="comparison_report.html"):
     </html>
     """
     
-    with open(filename, 'w') as f:
+    # Write with UTF-8 encoding to support all characters
+    with open(filename, 'w', encoding='utf-8') as f:
         f.write(html_content)
     print(f"HTML report saved to {filename}")
 
